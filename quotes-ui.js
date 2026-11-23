@@ -38,13 +38,13 @@ export function quoteBanner(view){
  const quote=row.quote;
  if(!quote)return '';
  const id=row?.id||'preview',back=bannerBacks.has(id),earned=row?.reviews.length||0;
- const stackDepth=Math.max(0,items.length-1);
+ const stackDepth=0;
  const layers=Array.from({length:stackDepth},(_,i)=>stackDepth-i).map(depth=>`<span class="quote-stack-layer" style="--stack-index:${depth}" aria-hidden="true"></span>`).join('');
  const stars=`<span class="quote-banner-stars" role="img" aria-label="이 명언으로 받은 별 ${earned}개, 모두 5개">${Array.from({length:5},(_,i)=>`<svg class="quote-progress-star ${i<earned?'earned':''}" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.5 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3.1-5.8 3.1 1.1-6.5L2.6 9.3l6.5-.9z"/></svg>`).join('')}</span>`;
- return `<div class="quote-banner-wrap" role="group" aria-label="명언 카드 ${Math.max(1,items.length)}장" style="--stack-depth:${stackDepth}">${layers}<button type="button" class="quote-banner ${back?'is-back':''}" data-act="quoteFlip:${escape(id)}" aria-pressed="${back}" aria-label="${back?'명언 다시 보기':'명언 카드 뒤집어 가리기'}"><span class="quote-banner-inner"><span class="quote-banner-front" aria-hidden="${back}">${stars}<span class="quote-banner-text">${escape(quote.text)}</span><span class="quote-banner-author">${escape(quote.author)}</span></span><span class="quote-banner-back" aria-hidden="${!back}">${stars}<span class="quote-banner-seal" aria-hidden="true">✦</span></span></span></button></div>`;
+ return `<div class="quote-banner-wrap" role="group" aria-label="명언 카드 1장" style="--stack-depth:${stackDepth}">${layers}<button type="button" class="quote-banner ${back?'is-back':''}" data-act="quoteFlip:${escape(id)}" aria-pressed="${back}" aria-label="${back?'명언 다시 보기':'명언 카드 뒤집어 가리기'}"><span class="quote-banner-inner"><span class="quote-banner-front" aria-hidden="${back}">${stars}<span class="quote-banner-text">${escape(quote.text)}</span><span class="quote-banner-author">${escape(quote.author)}</span></span><span class="quote-banner-back" aria-hidden="${!back}">${stars}<span class="quote-banner-seal" aria-hidden="true">✦</span></span></span></button></div>`;
 }
 
-export function familyQuoteCards(status,{started=true}={}){
+export function familyQuoteCards(status,{started=true,page=0}={}){
  if(!status)return '<p>명언을 불러오고 있어요.</p>';
  const names={melody:'멜로디',areum:'아름이'},groups=new Map();
  for(const [player,view] of Object.entries(status))for(const row of view.items){
@@ -54,15 +54,17 @@ export function familyQuoteCards(status,{started=true}={}){
  }
  const list=[...groups.values()].sort((a,b)=>{
   const due=x=>Object.values(x.children).some(r=>r.due),complete=x=>Object.values(x.children).every(r=>r.complete);
-  return Number(due(b))-Number(due(a))||Number(complete(a))-Number(complete(b))||b.startDay-a.startDay;
+  return Number(due(b))-Number(due(a))||Number(complete(a))-Number(complete(b))||a.startDay-b.startDay;
  });
+ const selected=Math.max(0,Math.min(page,list.length-1));
+ const shown=list.slice(selected,selected+1);
  const today=status.melody.today;
  return `<section class="quote-page"><header class="quote-heading"><span class="quote-eyebrow">같은 문장, 함께 자라는 마음</span><h1>함께 배우는 한 문장</h1><p>명언·속담·사자성어와 시작일은 한 번만 고르고, 두 아이의 복습은 각각 확인해요.</p></header><div class="quote-add"><button class="primary" data-act="quoteWeek" ${started?'':'disabled'}>일주일치 한 번에 고르기</button><button data-act="quoteNew" ${started?'':'disabled'}>한 문장 추가 · 직접 입력</button></div><div class="quote-guide"><strong>첫날 · 1일 후 · 3일 후 · 7일 후 · 14일 후</strong><p>확인할 때마다 해당 아이에게 별 1개를 보내요. 별을 받은 카드는 그 아이 화면에서만 다음 복습일까지 숨겨져요.</p></div>
- ${list.length?`<div class="family-quote-list">${list.map(group=>`<article class="quote-card"><div class="quote-card-top"><span class="quote-status">${group.quote.kind||'명언'} · ${group.startDay>today?'시작 예약':'함께 배우기'}</span><span>${quoteDate(group.startDay)} 시작</span></div><div class="quote-memory"><blockquote>“${escape(group.quote.text)}”</blockquote><p class="quote-author">${escape(group.quote.author)}</p></div><p class="quote-meaning">${escape(group.quote.meaning)}</p><p class="quote-question">${escape(group.quote.prompt)}</p><div class="family-quote-children">${Object.entries(names).map(([player,name])=>{
+ ${list.length?`<div class="family-quote-list">${shown.map(group=>`<article class="quote-card"><div class="quote-card-top"><span class="quote-status">${group.quote.kind||'명언'} · ${group.startDay>today?'시작 예약':'함께 배우기'}</span><span>${quoteDate(group.startDay)} 시작</span></div><div class="quote-memory"><blockquote>“${escape(group.quote.text)}”</blockquote><p class="quote-author">${escape(group.quote.author)}</p></div><p class="quote-meaning">${escape(group.quote.meaning)}</p><p class="quote-question">${escape(group.quote.prompt)}</p><div class="family-quote-children">${Object.entries(names).map(([player,name])=>{
   const row=group.children[player];
   if(!row)return `<section class="family-quote-child"><h3>${name}</h3><p class="muted">이전에 개별 배정한 명언으로, 이 아이의 기록은 없어요.</p></section>`;
   const count=row.reviews.length,paidToday=row.reviews.some(r=>Math.floor((r.at+9*3600000)/86400000)===today);
   const label=row.complete?'5회 복습 완료':paidToday?'오늘 확인 완료':row.due?'오늘 확인해 주세요':`${quoteDate(row.dueDay)}에 ${count+1}회차 복습`;
   return `<section class="family-quote-child"><h3>${name}</h3><div class="quote-stars" role="img" aria-label="${name} 별 ${count}개, 모두 5개">${Array.from({length:5},(_,i)=>`<span class="${i<count?'earned':''}" aria-hidden="true">${i<count?'★':'☆'}</span>`).join('')}</div><p class="family-quote-status">${label}</p><ol class="quote-schedule">${row.schedule.map((day,i)=>`<li class="${i<count?'done':''}"><strong>${i+1}회</strong><span>${quoteDate(day)}</span><small>${i<count?(row.reviews[i].mode==='effort'?'약속한 연습 완료':row.reviews[i].mode==='hint'?'힌트 후 완료':'스스로 완료'):'예정'}</small></li>`).join('')}</ol>${row.due?`<button class="primary" data-act="quoteReview:${player}:${row.id}">${name} 확인 · 별 1개</button>`:''}</section>`;
- }).join('')}</div></article>`).join('')}</div>`:'<div class="quote-empty"><h2>함께 배울 첫 명언을 골라주세요</h2><p>한 번 고르면 멜로디와 아름이에게 함께 배정돼요.</p></div>'}</section>`;
+ }).join('')}</div></article>`).join('')}</div>${list.length>1?`<nav class="history-pagination" aria-label="명언 한 장씩 보기"><button data-act="quotePage:${selected-1}" ${selected===0?'disabled':''}>이전 명언</button><span>${selected+1} / ${list.length}</span><button data-act="quotePage:${selected+1}" ${selected===list.length-1?'disabled':''}>다음 명언</button></nav>`:''}`:'<div class="quote-empty"><h2>함께 배울 첫 명언을 골라주세요</h2><p>한 번 고르면 멜로디와 아름이에게 함께 배정돼요.</p></div>'}</section>`;
 }

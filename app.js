@@ -10,7 +10,7 @@ const historyMonths={melody:'',areum:''};
 const historyModes={melody:'week',areum:'week'};
 import {weeklyScheduleHTML,weeklyPlanHTML,weeklyDayComplete} from './weekly-schedule.js?v=77';
 let weeklyEditing=null;
-import {quoteCards,quoteDate,setQuotePractice,quoteBanner,flipQuoteBanner,familyQuoteCards} from './quotes-ui.js?v=77';
+import {quoteCards,quoteDate,setQuotePractice,quoteBanner,flipQuoteBanner,familyQuoteCards} from './quotes-ui.js?v=87';
 import {eggLessonHTML} from './egg-tutor-ui.js?v=45';
 import {createLessonVoice} from './tutor-voice.js?v=45';
 import {mathVisual} from './math-visuals.js?v=39';
@@ -355,7 +355,8 @@ function weeklyEdit(day){
  modal(`<h2>${E.NAMES[adminKid]} · ${'월화수목금토일'[day]}요일</h2><p>매주 반복할 할 일을 정해 주세요. 모두 삭제하면 쉬는 날이 됩니다.</p><div id="weeklyEditRows">${plan.tasks.map(t=>weeklyEditRow(t)).join('')}</div>${btn('할 일 추가','weeklyAdd','secondary')}<p class="muted">할 일은 60자, 하루 최대 20개까지 입력할 수 있어요.</p><div class="actions">${btn('취소','close')}${btn('일정 저장','weeklySave','primary')}</div>`);
 }
 function weeklyEditRow(t={}){return `<div class="weekly-edit-row" data-task-id="${esc(t.id||'')}"><input aria-label="할 일" maxlength="60" value="${esc(t.label||'')}" placeholder="예: 피아노 연습"><select aria-label="연결할 별 지급 종류">${Object.entries({quote:'명언 복습',diary:'일기',math:'수학',reading:'국어',cleaning:'청소',custom:'직접 입력'}).map(([key,label])=>`<option value="${key}" ${(t.category||'custom')===key?'selected':''}>${label}</option>`).join('')}</select><button type="button" class="small danger" data-week-remove aria-label="할 일 삭제">삭제</button></div>`;}
-function parentQuotes(){return familyQuoteCards(state.quoteStatus,{started:state.started});}
+let quotePage=0;
+function parentQuotes(){return familyQuoteCards(state.quoteStatus,{started:state.started,page:quotePage});}
 function quoteNew(){
  const view=state.quoteStatus?.melody;if(!state.started||!view)throw Error('게임을 시작한 뒤 명언을 골라 주세요.');
  const active=Object.values(state.quoteStatus).flatMap(v=>v.items).filter(r=>!r.complete);
@@ -482,6 +483,7 @@ function replace(id){const c=state.cards.find(c=>c.id===id);modal(`<h2>제공 �
 async function handle(action){const [cmd,id,x]=action.split(':');if(/^(mission|egg|tutor)/.test(cmd)){toast('오늘의 미션은 잠시 쉬고 있어요.');return;}if(['nav','admin','missionOpen'].includes(cmd))tutorVoice.stop();
 if(['award','newAuction','auctionConfirm','cancelAuction','edit','saveCard','manage','restore','restoreSave','replace','replaceSave','correct','export','missionReset','missionReport','missionSettings','missionSettingsSave'].includes(cmd)&&!adminOK())throw Error('부모 PIN으로 먼저 열어 주세요.');
 switch(cmd){
+ case 'quotePage':quotePage=Math.max(0,Number(id)||0);render();break;
  case 'pagesStart':await startPagesConnection();break;
  case 'pagesFinish':await finishPagesConnection(api);break;
  case 'quoteFlip':{const back=flipQuoteBanner(id),banner=$('.quote-banner');if(banner){banner.classList.toggle('is-back',back);banner.setAttribute('aria-pressed',String(back));banner.setAttribute('aria-label',back?'명언 다시 보기':'명언 카드 뒤집어 가리기');banner.querySelector('.quote-banner-front').setAttribute('aria-hidden',String(back));banner.querySelector('.quote-banner-back').setAttribute('aria-hidden',String(!back));}break;}
